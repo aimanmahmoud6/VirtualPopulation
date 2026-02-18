@@ -1,0 +1,17 @@
+# =============================================================================
+# Python Dependencies for Segmentation Pipeline
+#
+# Summary:
+#   Minimal set of packages required to run the NIfTI->QC->AutoRepair->VTI flow.
+#
+# Created by Aiman Mahmoud, King's College London, February 2026.
+# Email: aiman.2.mahmoud@kcl.ac.uk
+# =============================================================================
+
+numpy
+SimpleITK
+scipy
+nibabel
+pyvista
+pandas
+PyYAML

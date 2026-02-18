@@ -1,0 +1,54 @@
+
+---
+
+## CONFIGS
+
+### `config/params.yaml`
+```yaml
+# =============================================================================
+# Runtime Parameters (Global)
+#
+# Summary:
+#   File paths and global numeric parameters for the pipeline run.
+#
+# Created by Aiman Mahmoud, King's College London, February 2026.
+# Email: aiman.2.mahmoud@kcl.ac.uk
+# =============================================================================
+
+inputs:
+  body: "AC09-06-2022_final_skin.nii.gz"
+  bones: "AC09-06-2022_bones_separate_labels.nii.gz"
+
+outputs:
+  nifti: "processed_anatomy_combined_2mm.nii.gz"
+  vti: "processed_wbseg_combined_2mm.vti"
+  log: "processing_log.txt"
+  qc_csv: "segmentation_qc_report.csv"
+
+target_spacing_mm: [2.0, 2.0, 2.0]
+
+skin:
+  generate: true
+  label: 73
+  thickness_mm: 4.0
+
+overlay:
+  default_dilation_mm: 2.0
+  dilation_mm_overrides: {}
+  sigma_alpha: 0.35
+  median_beta: 1.0
+
+refine:
+  dust_max_vox: 20
+  small_frac: 0.01
+  multipart_min_cc: 6
+  multipart_ratio: 2.0
+  final_polish_dust_vox: 2
+
+autorepair:
+  allow_overwrite_labels: [0, 65, 66]
+  max_close_iters_default: 4
+  max_close_iters_cartilage: 6
+  bridge_radius_default: 1
+  bridge_radius_cartilage: 2
+  bridge_max_iters: 10

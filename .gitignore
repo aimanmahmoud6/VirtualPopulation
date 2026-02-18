@@ -1,0 +1,33 @@
+# =============================================================================
+# Segmentation Pipeline Repo Ignore Rules
+#
+# Summary:
+#   Prevent committing large outputs (NIfTI/VTI), logs, and environment files.
+#
+# Created by Aiman Mahmoud, King's College London, February 2026.
+# Email: aiman.2.mahmoud@kcl.ac.uk
+# =============================================================================
+
+# outputs
+*.nii
+*.nii.gz
+*.vti
+*.vtk
+*.csv
+*.log
+processing_log.txt
+processing_log*.txt
+
+# python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
