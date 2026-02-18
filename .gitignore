@@ -17,6 +17,7 @@
 *.log
 processing_log.txt
 processing_log*.txt
+data/
 
 # python
 __pycache__/

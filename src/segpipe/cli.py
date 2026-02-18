@@ -1,42 +1,38 @@
 # =============================================================================
-# Command Line Interface (CLI)
+# Command Line Interface (Pure Python Config)
 #
 # Summary:
-#   Entry point to run the pipeline with YAML configs and optional path
-#   overrides for input/output. Run with: python -m segpipe.cli
+#   Runs the pipeline using settings from segpipe.settings. Supports
+#   optional overrides for input/output paths.
 #
 # Created by Aiman Mahmoud, King's College London, February 2026.
 # Email: aiman.2.mahmoud@kcl.ac.uk
 # =============================================================================
 
 import argparse
-from .config import load_config
+from .settings import DEFAULT_SETTINGS
 from .pipeline import run_pipeline
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Segmentation pipeline: NIfTI -> QC -> AutoRepair -> VTI")
-    ap.add_argument("--config", default="config/params.yaml", help="Path to params.yaml")
-    ap.add_argument("--organs", default="config/organs.yaml", help="Path to organs.yaml")
-    ap.add_argument("--qc", default="config/qc_limits.yaml", help="Path to qc_limits.yaml")
-
-    # overrides
+    ap = argparse.ArgumentParser(description="Segmentation pipeline (pure Python settings)")
     ap.add_argument("--input-body", default=None, help="Override input body NIfTI path")
     ap.add_argument("--input-bones", default=None, help="Override input bones NIfTI path")
-    ap.add_argument("--output", default=None, help="Override output NIfTI path (processed labelmap)")
-
+    ap.add_argument("--output-nifti", default=None, help="Override output NIfTI path")
+    ap.add_argument("--output-vti", default=None, help="Override output VTI path")
+    ap.add_argument("--output-log", default=None, help="Override log file path")
+    ap.add_argument("--output-qc", default=None, help="Override QC CSV path")
     args = ap.parse_args()
 
-    cfg = load_config(args.config, args.organs, args.qc)
+    s = DEFAULT_SETTINGS
+    if args.input_body: s.input_body = args.input_body
+    if args.input_bones: s.input_bones = args.input_bones
+    if args.output_nifti: s.out_nifti = args.output_nifti
+    if args.output_vti: s.out_vti = args.output_vti
+    if args.output_log: s.out_log = args.output_log
+    if args.output_qc: s.out_qc_csv = args.output_qc
 
-    if args.input_body:
-        cfg.params["inputs"]["body"] = args.input_body
-    if args.input_bones:
-        cfg.params["inputs"]["bones"] = args.input_bones
-    if args.output:
-        cfg.params["outputs"]["nifti"] = args.output
-
-    run_pipeline(cfg)
+    run_pipeline(s)
 
 
 if __name__ == "__main__":

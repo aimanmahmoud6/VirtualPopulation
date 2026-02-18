@@ -3,7 +3,7 @@
 #
 # Summary:
 #   Computes label QC metrics (sphericity, eccentricity, solidity, components)
-#   and produces a CSV report + failure dictionary used by the auto-repair loop.
+#   and produces a CSV report + failure dictionary used by the post-QC repair.
 #
 # Created by Aiman Mahmoud, King's College London, February 2026.
 # Email: aiman.2.mahmoud@kcl.ac.uk
@@ -59,6 +59,7 @@ def qc_run_on_image_path(
     organ_map: Dict[int, str],
     save_csv_path: str,
     save_csv: bool = True,
+    prefix: str = "[QC]",
 ):
     """
     Run QC on a labelmap NIfTI at file_path.
@@ -81,6 +82,9 @@ def qc_run_on_image_path(
     default_limits = qc_cfg.get("default_limits", {}) or {}
     label_limits = qc_cfg.get("label_limits", {}) or {}
 
+    # optional per-label max components (e.g. discs 68 -> 22)
+    max_components = qc_cfg.get("max_components", {}) or {}
+
     # vertebra special rule
     vertebrae_max_ecc = float(qc_cfg.get("vertebrae_max_ecc", 0.98))
 
@@ -90,9 +94,9 @@ def qc_run_on_image_path(
         f"{'ID':<5} | {'Organ Name':<22} | {'Spher':>6} | {'Ecc':>6} | "
         f"{'Sol':>6} | {'nCC':>4} | {'LCC%':>6} | {'Multi':>8} | Status"
     )
-    print("\n--- Running QC on:", file_path, "---")
-    print(header)
-    print("-" * len(header))
+    print(f"\n{prefix} Running QC on: {file_path}")
+    print(prefix + " " + header)
+    print(prefix + " " + "-" * len(header))
 
     qc_rows = []
     fails = {}
@@ -110,7 +114,21 @@ def qc_run_on_image_path(
         lim = get_limits(lid)
 
         ncc, lfrac, rel_cc = sitk_component_stats(img, lid)
-        multi_flag = "-" if ncc <= 1 else ("OK" if lid in ok_multi else "MULTI")
+
+        # multi flag logic with optional max component override
+        max_cc = max_components.get(str(lid), None)
+        if max_cc is not None:
+            max_cc = int(max_cc)
+        elif lid in max_components:
+            max_cc = int(max_components[lid])
+
+        if ncc <= 1:
+            multi_flag = "-"
+        else:
+            if max_cc is not None:
+                multi_flag = "OK" if ncc <= max_cc else "MULTI"
+            else:
+                multi_flag = "OK" if lid in ok_multi else "MULTI"
 
         # Metrics mode:
         # - OK_MULTI + multi: compute on largest CC only
@@ -139,9 +157,15 @@ def qc_run_on_image_path(
 
         issues = []
 
-        # EXTRA COMPONENTS (only if NOT OK_MULTI)
-        if (lid not in ok_multi) and (ncc > 1):
-            issues.append("EXTRA COMPONENTS DETECTED")
+        # EXTRA COMPONENTS:
+        # - if lid not in OK_MULTI and ncc>1 -> fail
+        # - if lid has explicit max_components and ncc > max -> fail
+        if max_cc is not None:
+            if ncc > max_cc:
+                issues.append(f"EXTRA COMPONENTS DETECTED (>{max_cc})")
+        else:
+            if (lid not in ok_multi) and (ncc > 1):
+                issues.append("EXTRA COMPONENTS DETECTED")
 
         # VOLUME
         if phys_vol < float(lim.get("min_vol", 0.0)):
@@ -157,10 +181,11 @@ def qc_run_on_image_path(
 
         status = "PASS" if not issues else f"FAIL({'; '.join(issues)})"
 
-        print(
+        line = (
             f"{lid:<5} | {name:<22} | {sphericity:6.3f} | {ecc:6.3f} | "
             f"{solidity:6.3f} | {ncc:4d} | {100 * lfrac:6.1f} | {multi_flag:>8} | {status}"
         )
+        print(prefix + " " + line)
 
         qc_rows.append(
             {
@@ -181,11 +206,11 @@ def qc_run_on_image_path(
         if issues:
             fails[lid] = issues
 
-    print("-" * len(header))
+    print(prefix + " " + "-" * len(header))
 
     df = pd.DataFrame(qc_rows).sort_values(["Label_ID"]).reset_index(drop=True)
     if save_csv:
         df.to_csv(save_csv_path, index=False)
-        print(f"QC Report saved to: {save_csv_path}")
+        print(f"{prefix} QC Report saved to: {save_csv_path}")
 
     return df, fails

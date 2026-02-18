@@ -36,6 +36,7 @@ def overlay_organs(raw_crop_zyx: np.ndarray,
         base_mask = (raw_crop_zyx == lid)
         if not np.any(base_mask):
             continue
+        
 
         dil_mm = float(dil_over.get(lid, default_dil_mm))
         dil_it = dilation_iters_from_mm(dil_mm, vox_mm)
@@ -53,5 +54,24 @@ def overlay_organs(raw_crop_zyx: np.ndarray,
         better = smoothed > max_prob
         final_vol[better] = lid
         max_prob[better]  = smoothed[better]
+
+
+        # --------------------------------------------------
+        # HARDCODE TEST: Spinal Cord (52) = smoothed only
+        # (no winner-takes-all competition)
+        # --------------------------------------------------
+        if int(lid) == 52:
+            thr = 0.5  # test threshold; tune if needed (0.3–0.7)
+            cord = smoothed > thr
+
+            # Write cord directly
+            final_vol[cord] = 52
+
+            # Protect it from being overwritten later:
+            # set max_prob high where cord is present
+            max_prob[cord] = 1.0
+
+            continue
+
 
     return final_vol
